@@ -1,4 +1,3 @@
-// Função principal que registra todos os event listeners
 $(document).ready(function () {
   initApp();
   initUsersPage();
@@ -40,6 +39,13 @@ function initApp() {
   $(document).ready(function () {
     initTheme();
     });
+  
+  $(document)
+    .off("click", ".btn-reset")
+    .on("click", ".btn-reset", function () {
+      const userId = $(this).data("id");
+      resetUserPoints(userId);
+  });
 
   // ========= TASKS =========
   $(document)
@@ -75,6 +81,7 @@ function initApp() {
   .on("click", "#taskList .task-desc", function () {
     toggleDescription(this);
   });
+
 }
 
 // Inicializar página de usuários
@@ -123,7 +130,11 @@ function loadUsers() {
           <small class="text-muted">${user.points || 0} pontos</small>
           </div>
 
-            <button class="btn fs-4 btn-delete" data-id="${user._id}">
+            <button class="btn fs-4 btn-reset" data-id="${user._id}" title="Zerar pontos">
+              <i class="bi bi-arrow-counterclockwise text-warning"></i>
+            </button>
+
+            <button class="btn fs-4 btn-delete" data-id="${user._id}" title="Deletar usuário">
               <i class="bi bi-dash-circle text-danger"></i>
             </button>
           
@@ -247,7 +258,14 @@ function createUserTask() {
     contentType: "application/json",
     data: JSON.stringify({ name, photo }),
     success: function (response) {
-      alert("Usuário criado com sucesso!");
+      Toastify({
+        text: `✅ Usuário criado com sucesso!`,
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: { background: "#22c55e" },
+      }).showToast();
+
       localStorage.setItem("userId", response._id);
       $("#UserNameTask").val("");
       loadUsers();
@@ -346,49 +364,6 @@ function createTask() {
   });
 }
 
-// function createTask() {
-//   const title = $("#taskTitle").val();
-//   const description = $("#taskDescription").val();
-//   const points = $("#taskPoints").val();
-//   const assignedTo = $("#taskUser").val();
-//   const expiresAt = $("#expiresAt").val();
-//   const expiresAtDate = new Date(expiresAt);
-//   if (!assignedTo) {
-//     alert("Selecione um usuario");
-//   }
-
-//   if (expiresAtDate <= new Date()) {
-//     alert("Escolha uma data futura!");
-//     return;
-//   }
-
-//   $.ajax({
-//     url: "/tasks",
-//     method: "POST",
-//     contentType: "application/json",
-//     data: JSON.stringify({
-//       title,
-//       description,
-//       points,
-//       assignedTo,
-//       expiresAt,
-//     }),
-
-//     success: function (response) {
-//       alert("Task Criada");
-
-//       $("#newTaskForm")[0].reset();
-
-//       loadTasks();
-//     },
-
-//     error: function (xhr) {
-//       console.log();
-//       console.error("Erro ao criar task: ", xhr.responseJSON);
-//     },
-//   });
-// }
-
 //Mostrar na tela tasks
 function loadTasks() {
   loadUsers();
@@ -404,7 +379,6 @@ function loadTasks() {
                 Nenhuma task cadastrada
                 </li>
             `);
-
         return;
       }
 
@@ -414,16 +388,13 @@ function loadTasks() {
             <div class="task-content">
               <div class="task-left">
                 <input class="me-3 form-check-input task-checkbox" type="checkbox" data-id="${task._id}" ${task.status === "done" ? "checked" : ""} />
-
                 <div>
-                  <div class="task-title w-100 ${task.status === "done" ? "task-through" : ""} ">
-                  <strong> ${task.title}</strong>
-                  
-                  </div>
-                  <div class="task-desc ${task.status === "done" ? "task-through" : ""}" 
-                  data-expanded="false"
-                  >
-                    ${task.description || ""}
+                    <div class="task-title w-100 ${task.status === "done" ? "task-through" : ""} ">
+                        <strong> ${task.title}</strong>
+                    </div>
+
+                  <div class="task-desc ${task.status === "done" ? "task-through" : ""}" data-expanded="false">
+                      ${task.description || ""}
                   </div>
 
                   <div class="task-meta">
@@ -441,9 +412,10 @@ function loadTasks() {
               </div>
 
               <div class="task-right">
- <span class="badge rounded-pill text-bg-warning d-flex align-items-center gap-1 px-3 py-2 task-timer" data-expires="${task.expiresAt}">
-  <i class="bi bi-clock" style="color: black;"></i>
-</span>
+                <span class="badge rounded-pill text-bg-warning d-flex align-items-center gap-1 px-3 py-2 task-timer" data-expires="${task.expiresAt}">
+                  <i class="bi bi-clock" style="color: black;"></i>
+                </span>
+                
                 <button class="task-delete mt-4" data-id="${task._id}"><i class="bi bi-trash"></i></button>
               </div>
             </div>
@@ -625,8 +597,52 @@ function loadRanking() {
     },
   });
 }
+//Reseta os pontos de um usuario
+async function resetUserPoints(userId) {
+  const result = await Swal.fire({
+    icon: "warning",
+    title: "Atenção!",
+    text: "Tem certeza que deseja zerar os pontos deste usuário?",
+    showCancelButton: true,
+    confirmButtonText: "Sim, zerar",
+    cancelButtonText: "Cancelar",
+    confirmButtonColor: "#6d0a96",
+    cancelButtonColor: "#aaa",
+  });
 
-//Resetar todos os pontos do usuarios
+  if (!result.isConfirmed) return;
+
+  $.ajax({
+    url: `/users/${userId}`,  
+    method: "PUT",            
+    contentType: "application/json",
+    data: JSON.stringify({ points: 0 }),  
+    success: function (response) {
+      Toastify({
+        text: "✅ Pontos zerados com sucesso!",
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: { background: "#22c55e" },
+      }).showToast();
+
+      loadUsers();
+      loadRanking();
+    },
+    error: function (xhr) {
+      Toastify({
+        text: "❌ Erro ao zerar pontos!",
+        duration: 3000,
+        gravity: "top",
+        position: "right",
+        style: { background: "#ef4444" },
+      }).showToast();
+      console.error("Erro ao zerar pontos: ", xhr.responseJSON);
+    },
+  });
+}
+
+//Reseta todos os pontos de todos os usuarios
 async function resetAllPoints() {
   const result = await Swal.fire({
     icon: "warning",
@@ -740,9 +756,6 @@ function startTimers() {
       if (minutes == 0) {
         timeString += `${seconds}s`;
       }
-
-      // segundos sempre aparecem
-      // timeString += `${seconds}s`;
 
       $(this).html(`<i class="bi bi-clock" style="color: black;"></i> ${timeString.trim()}`);
     });

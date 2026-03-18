@@ -97,14 +97,6 @@ async function deleteTask(req, res) {
     if (!task) {
       return res.status(404).json({ error: "Task não encontrada" });
     }
-
-    // Se estava concluída, remove pontos
-    if (task.status != "done") {
-      await User.findByIdAndUpdate(task.assignedTo, {
-        $inc: { points: -task.points },
-      });
-    }
-
     await Task.findByIdAndDelete(id);
 
     res.json({ message: "Task removida com sucesso" });
@@ -192,28 +184,6 @@ async function deleteAllTasks(req, res) {
     res.status(500).json({ error: "Erro ao remover todas as tasks" });
   }
 }
-
-// async function deleteAllTasks(req, res) {
-//   try {
-//     const tasks = await Task.find();
-
-//     // Ajusta ponto dos usuarios
-//     for (const task of tasks) {
-//       if (task.status === "done") {
-//         await User.findByIdAndUpdate(task.assignedTo, {
-//           $inc: { points: -task.points },
-//         });
-//       }
-//     }
-
-//     await Task.deleteMany({});
-
-//     res.json({ message: "Todas as tasks removidas" });
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Erro ao remover todas as tasks" });
-//   }
-// }
 
 module.exports = {
   createTask,
